@@ -1,0 +1,12 @@
+env: "dev"
+http_server:
+  address: "0.0.0.0:8082"
+  timeout: 4s
+  idle_timeout: 60s
+db:
+  database_user: "postgres_user"
+  database_pass: "postgres_password"
+  database_host: "localhost"
+  database_port: "5430"
+  database_name: "postgres_db"
+

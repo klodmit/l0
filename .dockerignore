@@ -1,0 +1,11 @@
+.pgdata
+pgdata
+kafka-data
+node_modules
+.git
+.gitignore
+*.log
+dist
+bin
+.idea
+.vscode

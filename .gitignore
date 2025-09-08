@@ -1,0 +1,13 @@
+bin/
+dist/
+*.log
+*.out
+*.tmp
+vendor/
+.env
+.idea/
+.vscode/
+.DS_Store
+pgdata
+kafka-data
+
