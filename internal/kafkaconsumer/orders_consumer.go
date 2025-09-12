@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"l0/internal/cache"
 	"l0/internal/model"
 	"l0/internal/storage"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 type KafkaConsumer struct {
 	reader *kafka.Reader
 	repo   *storage.OrderRepository
+	cache  cache.OrderCache
 	log    *slog.Logger
 }
 
@@ -24,7 +26,7 @@ type KafkaConsumerConfig struct {
 	GroupID string
 }
 
-func NewKafkaConsumer(conf KafkaConsumerConfig, repo *storage.OrderRepository, log *slog.Logger) *KafkaConsumer {
+func NewKafkaConsumer(conf KafkaConsumerConfig, repo *storage.OrderRepository, c cache.OrderCache, log *slog.Logger) *KafkaConsumer {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -38,7 +40,7 @@ func NewKafkaConsumer(conf KafkaConsumerConfig, repo *storage.OrderRepository, l
 		MaxWait:        500 * time.Millisecond,
 		CommitInterval: 1 * time.Second,
 	})
-	return &KafkaConsumer{reader: reader, repo: repo, log: log}
+	return &KafkaConsumer{reader: reader, repo: repo, cache: c, log: log}
 }
 
 func (kc *KafkaConsumer) Close() error {
@@ -84,8 +86,8 @@ func (kc *KafkaConsumer) Run(ctx context.Context) error {
 			continue
 		}
 
-		//// backfill cache (на чтение отдастся мгновенно)
-		//c.cache.Set(ord.OrderUID, ord)
+		// backfill cache (на чтение отдастся мгновенно)
+		kc.cache.Set(ord.OrderUID, ord)
 
 		kc.log.Info("order stored from kafka",
 			"order_uid", ord.OrderUID,

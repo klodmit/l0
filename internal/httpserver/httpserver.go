@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"l0/internal/cache"
 	"l0/internal/storage"
 	"log/slog"
 	"net/http"
@@ -12,15 +13,17 @@ import (
 )
 
 type HttpServer struct {
-	http *http.Server
-	log  *slog.Logger
-	repo *storage.OrderRepository
+	http  *http.Server
+	log   *slog.Logger
+	repo  *storage.OrderRepository
+	cache cache.OrderCache
 }
 
 type Opts struct {
-	Addr string
-	Log  *slog.Logger
-	Repo *storage.OrderRepository
+	Addr  string
+	Log   *slog.Logger
+	Repo  *storage.OrderRepository
+	Cache cache.OrderCache
 }
 
 func NewHttpServer(opts Opts) *HttpServer {
@@ -53,6 +56,11 @@ func NewHttpServer(opts Opts) *HttpServer {
 	r.GET("order/:id", func(c *gin.Context) {
 		id := c.Param("id")
 
+		if o, ok := opts.Cache.Get(id); ok {
+			c.JSON(http.StatusOK, o)
+			return
+		}
+
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 		defer cancel()
 
@@ -70,6 +78,7 @@ func NewHttpServer(opts Opts) *HttpServer {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
+		opts.Cache.Set(id, o)
 		c.JSON(http.StatusOK, o)
 	})
 
@@ -79,9 +88,10 @@ func NewHttpServer(opts Opts) *HttpServer {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	return &HttpServer{
-		http: srv,
-		log:  opts.Log,
-		repo: opts.Repo,
+		http:  srv,
+		log:   opts.Log,
+		repo:  opts.Repo,
+		cache: opts.Cache,
 	}
 }
 

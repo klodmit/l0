@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"l0/internal/cache"
 	"l0/internal/config"
 	"l0/internal/httpserver"
 	"l0/internal/kafkaconsumer"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -50,11 +52,13 @@ func Run() {
 	defer pool.Close()
 
 	repo := storage.NewOrderRepo(pool, log)
+	orderCache := cache.NewOrderTTLCache(5 * time.Minute)
 
 	srv := httpserver.NewHttpServer(httpserver.Opts{
-		Addr: cfg.HttpServer.Address,
-		Log:  log,
-		Repo: repo,
+		Addr:  cfg.HttpServer.Address,
+		Log:   log,
+		Repo:  repo,
+		Cache: orderCache,
 	})
 	if err = srv.Start(); err != nil {
 		log.Error("server start failed", "err", err)
@@ -80,6 +84,7 @@ func Run() {
 			GroupID: group,
 		},
 		repo,
+		orderCache,
 		log,
 	)
 
