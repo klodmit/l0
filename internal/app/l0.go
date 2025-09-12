@@ -8,6 +8,7 @@ import (
 	"l0/internal/config"
 	"l0/internal/httpserver"
 	"l0/internal/kafkaconsumer"
+	"l0/internal/kafkaproducer"
 	"l0/internal/storage"
 	"log/slog"
 	"os"
@@ -54,17 +55,6 @@ func Run() {
 	repo := storage.NewOrderRepo(pool, log)
 	orderCache := cache.NewOrderTTLCache(5 * time.Minute)
 
-	srv := httpserver.NewHttpServer(httpserver.Opts{
-		Addr:  cfg.HttpServer.Address,
-		Log:   log,
-		Repo:  repo,
-		Cache: orderCache,
-	})
-	if err = srv.Start(); err != nil {
-		log.Error("server start failed", "err", err)
-		os.Exit(1)
-	}
-
 	brokers := cfg.Kafka.Brokers
 	topic := cfg.Kafka.Topic
 	group := cfg.Kafka.GroupId
@@ -87,6 +77,29 @@ func Run() {
 		orderCache,
 		log,
 	)
+
+	prod := kafkaproducer.NewKafkaProducer(kafkaproducer.Config{
+		Brokers: strings.Split(brokers, ","),
+		Topic:   topic,
+	}, log)
+	defer prod.Close()
+
+	// HTTP (передаём продьюсер в опции)
+	addr := os.Getenv("HTTP_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	srv := httpserver.NewHttpServer(httpserver.Opts{
+		Addr:  addr,
+		Log:   log,
+		Repo:  repo,
+		Cache: orderCache,
+		Prod:  prod,
+	})
+	if err := srv.Start(); err != nil {
+		log.Error("http server start failed", "err", err)
+		os.Exit(1)
+	}
 
 	// Запускаем consumer
 	go func() {

@@ -18,10 +18,9 @@ func InitDB(ctx context.Context, log *slog.Logger, dsn string) (*pgxpool.Pool, e
 	cfg.MaxConns = 10
 	cfg.MinConns = 2
 	cfg.HealthCheckPeriod = 30 * time.Second
+	cfg.ConnConfig.ConnectTimeout = 5 * time.Second
 
-	// Подключение к базе с тайм-аутом
-	connectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	connectCtx := context.Background()
 
 	// Инициализируем пул соединений
 	pool, err := pgxpool.NewWithConfig(connectCtx, cfg)
@@ -39,6 +38,5 @@ func InitDB(ctx context.Context, log *slog.Logger, dsn string) (*pgxpool.Pool, e
 
 	log.Info("db connected", "user", cfg.ConnConfig.User, "host", cfg.ConnConfig.Host, "db", cfg.ConnConfig.Database)
 
-	defer pool.Close()
 	return pool, nil
 }

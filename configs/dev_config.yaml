@@ -6,8 +6,8 @@ http_server:
 db:
   database_user: "postgres_user"
   database_pass: "postgres_password"
-  database_host: "localhost"
-  database_port: "5430"
+  database_host: "postgres"
+  database_port: "5432"
   database_name: "postgres_db"
 
 kafka:

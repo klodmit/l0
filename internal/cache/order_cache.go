@@ -1,10 +1,9 @@
 package cache
 
 import (
+	"l0/internal/model"
 	"sync"
 	"time"
-
-	"l0/internal/model"
 )
 
 type OrderCache interface {

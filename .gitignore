@@ -12,3 +12,4 @@ pgdata
 kafka-data
 
 /configs/dev.env
+/lo_back_prod/configs/dev.env
