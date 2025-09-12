@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"l0/internal/config"
+	"l0/internal/httpserver"
 	"l0/internal/storage"
 	"log/slog"
 	"os"
@@ -46,8 +47,19 @@ func Run() {
 	}
 	defer pool.Close()
 
-	//repo := storage.NewOrderRepo(pool, log)
+	repo := storage.NewOrderRepo(pool, log)
 
+	srv := httpserver.NewHttpServer(httpserver.Opts{
+		Addr: cfg.HttpServer.Address,
+		Log:  log,
+		Repo: repo,
+	})
+	if err = srv.Start(); err != nil {
+		log.Error("server start failed", "err", err)
+		os.Exit(1)
+	}
+
+	log.Info("ready; waiting for shutdown signal", "addr", cfg.HttpServer.Address)
 	<-rootCtx.Done()
 
 }
