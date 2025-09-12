@@ -61,9 +61,9 @@ func Run() {
 		os.Exit(1)
 	}
 
-	brokers := os.Getenv("KAFKA_BROKERS")
-	topic := os.Getenv("KAFKA_TOPIC_ORDERS")
-	group := os.Getenv("KAFKA_GROUP_ID")
+	brokers := cfg.Kafka.Brokers
+	topic := cfg.Kafka.Topic
+	group := cfg.Kafka.GroupId
 	if brokers == "" || topic == "" || group == "" {
 		log.Error("kafka env not set",
 			"KAFKA_BROKERS", brokers,

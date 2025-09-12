@@ -13,4 +13,4 @@ db:
 kafka:
   brokers: "kafka:9092"
   topic: "orders"
-  groupId: "l0-orders-consumer"
+  group_id: "l0-orders-consumer"
