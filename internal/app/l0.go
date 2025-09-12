@@ -46,7 +46,7 @@ func Run() {
 	}
 	defer pool.Close()
 
-	repo := storage.NewOrderRepo(pool, log)
+	//repo := storage.NewOrderRepo(pool, log)
 
 	<-rootCtx.Done()
 

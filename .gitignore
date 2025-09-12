@@ -11,3 +11,4 @@ vendor/
 pgdata
 kafka-data
 
+/configs/dev.env

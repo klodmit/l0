@@ -12,6 +12,7 @@ type Config struct {
 	Env        string     `yaml:"env" env-default:"development"`
 	HttpServer HttpServer `yaml:"http_server"`
 	Db         Db         `yaml:"db"`
+	Kafka      Kafka      `yaml:"kafka"`
 }
 
 type HttpServer struct {
@@ -25,6 +26,12 @@ type Db struct {
 	DatabaseHost string `yaml:"database_host" env:"DB_HOST"`
 	DatabasePort string `yaml:"database_port" env:"DB_PORT"`
 	DatabaseName string `yaml:"database_name" env:"DB_NAME"`
+}
+
+type Kafka struct {
+	Brokers string `yaml:"brokers"      env:"KAFKA_BROKERS"`
+	Topic   string `yaml:"topic"        env:"KAFKA_TOPIC"`
+	GroupId string `yaml:"group_id"     env:"KAFKA_GROUP_ID"`
 }
 
 func MustLoad() Config {

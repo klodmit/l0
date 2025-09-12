@@ -10,3 +10,7 @@ db:
   database_port: "5430"
   database_name: "postgres_db"
 
+kafka:
+  brokers: "kafka:9092"
+  topic: "orders"
+  groupId: "l0-orders-consumer"
