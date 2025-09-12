@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"l0/internal/config"
 	"l0/internal/httpserver"
+	"l0/internal/kafkaconsumer"
 	"l0/internal/storage"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -58,6 +60,37 @@ func Run() {
 		log.Error("server start failed", "err", err)
 		os.Exit(1)
 	}
+
+	brokers := os.Getenv("KAFKA_BROKERS")
+	topic := os.Getenv("KAFKA_TOPIC_ORDERS")
+	group := os.Getenv("KAFKA_GROUP_ID")
+	if brokers == "" || topic == "" || group == "" {
+		log.Error("kafka env not set",
+			"KAFKA_BROKERS", brokers,
+			"KAFKA_TOPIC_ORDERS", topic,
+			"KAFKA_GROUP_ID", group,
+		)
+		os.Exit(1)
+	}
+
+	kc := kafkaconsumer.NewKafkaConsumer(
+		kafkaconsumer.KafkaConsumerConfig{
+			Brokers: strings.Split(brokers, ","),
+			Topic:   topic,
+			GroupID: group,
+		},
+		repo,
+		log,
+	)
+
+	// Запускаем consumer
+	go func() {
+		if err := kc.Run(rootCtx); err != nil {
+			log.Error("kafka consumer stopped with error", "err", err)
+			// решение: можно инициировать остановку всего сервиса
+			// stop()
+		}
+	}()
 
 	log.Info("ready; waiting for shutdown signal", "addr", cfg.HttpServer.Address)
 	<-rootCtx.Done()
