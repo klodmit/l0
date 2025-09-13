@@ -57,6 +57,11 @@ func NewHttpServer(opts Opts) *HttpServer {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	// simple web page for manual order lookup
+	r.GET("/", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", indexPage)
+	})
+
 	// GET /order/:id (оставляю как у тебя)
 	r.GET("/order/:id", func(c *gin.Context) {
 		id := c.Param("id")

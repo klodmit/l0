@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Order Lookup</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input { padding: 0.5rem; }
+    button { padding: 0.5rem 1rem; }
+    pre { background: #f0f0f0; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Order Lookup</h1>
+  <input type="text" id="orderId" placeholder="Order ID" />
+  <button id="fetchBtn">Fetch</button>
+  <pre id="result"></pre>
+  <script>
+    document.getElementById('fetchBtn').addEventListener('click', async () => {
+      const id = document.getElementById('orderId').value.trim();
+      if (!id) return;
+      const res = await fetch('/order/' + encodeURIComponent(id));
+      const text = await res.text();
+      try {
+        const json = JSON.parse(text);
+        document.getElementById('result').textContent = JSON.stringify(json, null, 2);
+      } catch {
+        document.getElementById('result').textContent = text;
+      }
+    });
+  </script>
+</body>
+</html>

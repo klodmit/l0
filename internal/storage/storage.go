@@ -40,6 +40,26 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11);`
 INSERT INTO items (
   order_uid, chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);`
+
+	qSelectAllOrders = `
+SELECT
+  o.order_uid, o.track_number, o.entry, o.locale, o.internal_signature, o.customer_id,
+  o.delivery_service, o.shardkey, o.sm_id, o.date_created, o.oof_shard,
+
+  d.name, d.phone, d.zip, d.city, d.address, d.region, d.email,
+
+  p.transaction, p.request_id, p.currency, p.provider,
+  (p.amount)::float8, p.payment_dt, p.bank,
+  (p.delivery_cost)::float8, (p.goods_total)::float8, (p.custom_fee)::float8
+FROM orders o
+JOIN deliveries d ON d.order_uid = o.order_uid
+JOIN payments   p ON p.order_uid = o.order_uid;`
+
+	qSelectAllItems = `
+SELECT order_uid, chrt_id, track_number, (price)::float8, rid, name, (sale)::float8, size,
+       (total_price)::float8, nm_id, brand, status
+FROM items
+ORDER BY order_uid, item_id;`
 )
 
 func (r *OrderRepository) SaveOrder(ctx context.Context, o model.Order) error {
@@ -176,4 +196,68 @@ func (r *OrderRepository) GetOrder(ctx context.Context, orderUID string) (model.
 	o.Items = items
 
 	return o, nil
+}
+
+// GetAllOrders retrieves all orders with their deliveries, payments and items.
+func (r *OrderRepository) GetAllOrders(ctx context.Context) ([]model.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	rows, err := r.pool.Query(ctx, qSelectAllOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ordMap := make(map[string]*model.Order)
+	for rows.Next() {
+		var o model.Order
+		if err := rows.Scan(
+			&o.OrderUID, &o.TrackNumber, &o.Entry, &o.Locale, &o.InternalSignature, &o.CustomerID,
+			&o.DeliveryService, &o.Shardkey, &o.SmID, &o.DateCreated, &o.OofShard,
+
+			&o.Delivery.Name, &o.Delivery.Phone, &o.Delivery.Zip, &o.Delivery.City,
+			&o.Delivery.Address, &o.Delivery.Region, &o.Delivery.Email,
+
+			&o.Payment.Transaction, &o.Payment.RequestID, &o.Payment.Currency, &o.Payment.Provider,
+			&o.Payment.Amount, &o.Payment.PaymentDt, &o.Payment.Bank,
+			&o.Payment.DeliveryCost, &o.Payment.GoodsTotal, &o.Payment.CustomFee,
+		); err != nil {
+			return nil, err
+		}
+		ordMap[o.OrderUID] = &o
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	itemRows, err := r.pool.Query(ctx, qSelectAllItems)
+	if err != nil {
+		return nil, err
+	}
+	defer itemRows.Close()
+
+	for itemRows.Next() {
+		var uid string
+		var it model.Item
+		if err := itemRows.Scan(
+			&uid, &it.ChrtID, &it.TrackNumber, &it.Price, &it.Rid, &it.Name, &it.Sale,
+			&it.Size, &it.TotalPrice, &it.NmID, &it.Brand, &it.Status,
+		); err != nil {
+			return nil, err
+		}
+		if o, ok := ordMap[uid]; ok {
+			o.Items = append(o.Items, it)
+		}
+	}
+	if err := itemRows.Err(); err != nil {
+		return nil, err
+	}
+
+	res := make([]model.Order, 0, len(ordMap))
+	for _, o := range ordMap {
+		res = append(res, *o)
+	}
+
+	return res, nil
 }

@@ -55,6 +55,18 @@ func Run() {
 	repo := storage.NewOrderRepo(pool, log)
 	orderCache := cache.NewOrderTTLCache(5 * time.Minute)
 
+	// восстановление кеша из БД
+	restoreCtx, cancel := context.WithTimeout(rootCtx, 15*time.Second)
+	if orders, err := repo.GetAllOrders(restoreCtx); err != nil {
+		log.Error("restore cache failed", "err", err)
+	} else {
+		for _, o := range orders {
+			orderCache.Set(o.OrderUID, o)
+		}
+		log.Info("cache restored", "orders", len(orders))
+	}
+	cancel()
+
 	brokers := cfg.Kafka.Brokers
 	topic := cfg.Kafka.Topic
 	group := cfg.Kafka.GroupId
